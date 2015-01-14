@@ -6,11 +6,7 @@ int main (int argc,char *agrv[])
 	int  buff;
 	int  *p;
 	p =a;
-	printf("hello world!!");
-	sscanf("123456 ", "%*4d%d", buf); 
 	
-	printf("%d\n",buf);
-	buff = atoi(buf);
 	printf("%d\n",buff);
 	return 0;
 }
