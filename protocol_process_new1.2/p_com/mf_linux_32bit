@@ -1,0 +1,37 @@
+CC = cc
+ORCLLIB = $(ORACLE_HOME)/lib/libclntsh.so
+COMOBJECT = common.h common.o security_func.o
+COMMONLIB = -f common.o -f security_func.o -f $(ORCLLIB)
+PROC_OPT = MODE=ORACLE DBMS=V8 UNSAFE_NULL=YES
+OUTPATH = $(APPDIR)/program
+
+
+nm_com : setpass common.o security_func.o dbcommon.o socket_com.o monitor_com.o
+	echo "make finish"
+
+
+common.o : common.c common.h
+	$(CC) -g -c common.c -m32
+
+security_func.o : security_func.c
+	$(CC) -g -c security_func.c -m32
+
+socket_com.o : socket_com.c
+	$(CC) -g -c socket_com.c -m32
+
+dbcommon.o : dbcommon.c dbcommon.h common.h common.o
+	$(CC) -g -c dbcommon.c -m32
+
+monitor_com.o : monitor_com.c common.h common.o
+	$(CC) -c monitor_com.c -m32
+	
+	
+setpass : setpass.c security_func.o
+	$(CC) -g setpass.c security_func.o -o setpass -m32
+	
+	
+dbcommon.c : dbcommon.pc
+	proc $(PROC_OPT) dbcommon.pc
+
+
+

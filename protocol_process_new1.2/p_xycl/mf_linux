@@ -1,0 +1,38 @@
+CC = gcc
+#XML_LIB = -I /usr/local/include/libxml2 -L /usr/local/lib -lxml2 -lusrxml
+REDIS_LIB = -L /usr/lib/hiredis/ -lhiredis
+REDIS_INC = -I /usr/include/hiredis/
+COM_H = ../p_com/common.h ../p_com/redis_common.h /usr/include/hiredis/hiredis.h
+COMOBJECT = ../p_com/common.c ../p_com/security_func.c ../p_com/socket_com.c ../p_com/monitor_com.c ../p_com/redis_common.c 
+
+CK_MYREPORT_C  = myreport/report_public.c
+#myreport/ck_process_myreport.c myreport/report_public.c myreport/report_000301.c myreport/report_100101.c myreport/report_100102.c myreport/report_100103.c myreport/report_100104.c myreport/report_100202.c myreport/report_100203.c myreport/report_100204.c myreport/report_100301.c myreport/report_100302.c myreport/report_100303.c myreport/report_100304.c myreport/report_2001XX.c myreport/report_2002XX.c myreport/report_400XXX.c
+CK_GWGY_C = gwgy/public/public.c gwgy/public/encode_public.c gwgy/public/decode_public.c gwgy/encode_main.c gwgy/decode_main.c
+CK_GWGY00_C = gwgy/afn_00/decode_AFN00.c gwgy/afn_00/decode_AFN00_FN3.c gwgy/afn_00/encode_AFN00.c
+CK_GWGY01_C = gwgy/afn_01/encode_AFN01.c
+CK_GWGY02_C = gwgy/afn_02/decode_AFN02.c
+CK_GWGY03_C = gwgy/afn_03/encode_AFN03.c gwgy/afn_03/encode_AFN03_FN1_4.c gwgy/afn_03/decode_AFN03.c gwgy/afn_03/decode_AFN03_FN1_4.c
+CK_GWGY04_C = gwgy/afn_04/encode_AFN04.c gwgy/afn_04/encode_AFN04_FN1_20.c gwgy/afn_04/encode_AFN04_FN21_35.c gwgy/afn_04/encode_AFN04_FN36_150.c
+CK_GWGY05_C = gwgy/afn_05/encode_AFN05.c gwgy/afn_05/encode_AFN05_FN1_150.c
+CK_GWGY06_C = gwgy/afn_06/encode_AFN06.c gwgy/afn_06/encode_AFN06_FN1_150.c gwgy/afn_06/decode_AFN06.c gwgy/afn_06/decode_AFN06_FN1_150.c 
+#CK_GWGY07_C = 
+CK_GWGY08_C = gwgy/afn_08/encode_AFN08.c
+CK_GWGY09_C = gwgy/afn_09/encode_AFN09.c gwgy/afn_09/decode_AFN09.c gwgy/afn_09/decode_AFN09_FN1_10.c
+CK_GWGY0A_C = gwgy/afn_0A/decode_AFN0A.c gwgy/afn_0A/decode_AFN0A_FN1_10.c gwgy/afn_0A/decode_AFN0A_FN11_24.c gwgy/afn_0A/decode_AFN0A_FN25_40.c gwgy/afn_0A/decode_AFN0A_FN41_150.c gwgy/afn_0A/encode_AFN0A.c gwgy/afn_0A/encode_AFN0A_FN1_150.c  
+CK_GWGY0B_C = gwgy/afn_0B/encode_AFN0B.c gwgy/afn_0B/encode_AFN0B_FN1_2.c
+CK_GWGY0C_C = gwgy/afn_0C/decode_AFN0C.c gwgy/afn_0C/encode_AFN0C.c gwgy/afn_0C/decode_AFN0C_FN1_8.c  gwgy/afn_0C/decode_AFN0C_FN9_16.c gwgy/afn_0C/decode_AFN0C_FN17_24.c  gwgy/afn_0C/decode_AFN0C_FN25_32.c   gwgy/afn_0C/decode_AFN0C_FN33_40.c  gwgy/afn_0C/decode_AFN0C_FN41_48.c  gwgy/afn_0C/decode_AFN0C_FN49_56.c  gwgy/afn_0C/decode_AFN0C_FN57_64.c   gwgy/afn_0C/decode_AFN0C_FN65_72.c   gwgy/afn_0C/decode_AFN0C_FN73_80.c gwgy/afn_0C/decode_AFN0C_FN81_88.c  gwgy/afn_0C/decode_AFN0C_FN89_96.c  gwgy/afn_0C/decode_AFN0C_FN97_104.c  gwgy/afn_0C/decode_AFN0C_FN105_112.c  gwgy/afn_0C/decode_AFN0C_FN113_116.c  gwgy/afn_0C/decode_AFN0C_FN121_128.c  gwgy/afn_0C/decode_AFN0C_FN129_144.c  gwgy/afn_0C/decode_AFN0C_FN145_152.c  gwgy/afn_0C/decode_AFN0C_FN161_168.c   gwgy/afn_0C/decode_AFN0C_FN169_178.c
+CK_GWGY0D_C = gwgy/afn_0D/encode_AFN0D.c gwgy/afn_0D/decode_AFN0D.c gwgy/afn_0D/encode_AFN0D_FN1_224.c gwgy/afn_0D/decode_AFN0D_FN1_12.c gwgy/afn_0D/decode_AFN0D_FN17_24.c gwgy/afn_0D/decode_AFN0D_FN25_32.c gwgy/afn_0D/decode_AFN0D_FN33_39.c gwgy/afn_0D/decode_AFN0D_FN41_46.c gwgy/afn_0D/decode_AFN0D_FN49_54.c gwgy/afn_0D/decode_AFN0D_FN57_66.c gwgy/afn_0D/decode_AFN0D_FN73_88.c gwgy/afn_0D/decode_AFN0D_FN89_104.c gwgy/afn_0D/decode_AFN0D_FN105_112.c gwgy/afn_0D/decode_AFN0D_FN113_120.c	gwgy/afn_0D/decode_AFN0D_FN121_128.c gwgy/afn_0D/decode_AFN0D_FN129_136.c gwgy/afn_0D/decode_AFN0D_FN137_144.c gwgy/afn_0D/decode_AFN0D_FN217_219.c gwgy/afn_0D/decode_AFN0D_FN209_216.c gwgy/afn_0D/decode_AFN0D_FN201_208.c gwgy/afn_0D/decode_AFN0D_FN145_152.c gwgy/afn_0D/decode_AFN0D_FN153_160.c gwgy/afn_0D/decode_AFN0D_FN193_200.c
+CK_GWGY0E_C = gwgy/afn_0E/encode_AFN0E.c gwgy/afn_0E/decode_AFN0E.c gwgy/afn_0E/encode_AFN0E_FN1_2.c gwgy/afn_0E/decode_AFN0E_FN1_2.c
+CK_GWGY0F_C = gwgy/afn_0F/encode_AFN0F.c gwgy/afn_0F/decode_AFN0F.c gwgy/afn_0F/encode_AFN0F_FN1_248.c gwgy/afn_0F/decode_AFN0F_FN1_248.c
+CK_GWGY10_C = gwgy/afn_10/encode_AFN10.c gwgy/afn_10/encode_AFN10_FN1_13.c gwgy/afn_10/decode_AFN10.c gwgy/afn_10/decode_AFN10_FN1_13.c
+CK_SJCL_INCLUDE = -I myreport/ -I gwgy/ -I gwgy/public/ -I gwgy/afn_00/ -I gwgy/afn_01/ -I gwgy/afn_02/ -I gwgy/afn_03/ -I gwgy/afn_04/ -I gwgy/afn_05/ -I gwgy/afn_06/ -I gwgy/afn_07/ -I gwgy/afn_08/ -I gwgy/afn_09/ -I gwgy/afn_0A/ -I gwgy/afn_0B/ -I gwgy/afn_0C/ -I gwgy/afn_0D/ -I gwgy/afn_0E/ -I gwgy/afn_0F/ -I gwgy/afn_10/
+CK_SJCL_OBJ = $(CK_MYREPORT_C) $(CK_GWGY_C) $(CK_GWGY00_C) $(CK_GWGY01_C) $(CK_GWGY02_C) $(CK_GWGY03_C) $(CK_GWGY04_C) $(CK_GWGY05_C) $(CK_GWGY06_C) $(CK_GWGY08_C) $(CK_GWGY09_C) $(CK_GWGY0A_C) $(CK_GWGY0B_C) $(CK_GWGY0C_C) $(CK_GWGY0D_C) $(CK_GWGY0E_C) $(CK_GWGY0F_C) $(CK_GWGY10_C)
+
+ck_xycl : rm_xycl make_xycl
+	echo "make finish"
+
+make_xycl : ck_xycl.c ck_xycl.h $(COMOBJECT) $(COM_H) $(CK_SJCL_OBJ)
+	$(CC) -o3  -g  ck_xycl.c $(COMOBJECT) $(CK_SJCL_INCLUDE) $(CK_SJCL_OBJ) $(REDIS_LIB) $(REDIS_INC) -lpthread -lm -o ck_xycl
+
+rm_xycl	:	
+	rm -f ck_xycl ck_xycl.o

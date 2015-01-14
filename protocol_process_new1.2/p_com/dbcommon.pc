@@ -1,0 +1,366 @@
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <string.h>
+#include <time.h>
+#include "common.h"
+#include "dbcommon.h"
+
+exec sql include sqlca;
+exec sql include sqlda;
+exec sql include oraca;
+exec oracle option(oraca = yes);
+exec oracle option(release_cursor=yes);
+exec oracle option(char_map=string);
+
+
+#define MAX_ITEMS 200
+#define MAX_VNAME_LEN 128
+#define MAX_INAME_LEN 0
+
+
+extern struct SQLDA *sqlald();
+extern void sqlnul();
+
+int process_select_list(int db_ind,char *as_sql,char *as_separator,char *as_lineend,char **as_result,char *as_error,struct SQLDA *select_dp);
+
+int f_pwd_decode(char *as_str,char *as_retrun);
+int f_str_cracked(char *d,char *ls_newpass);
+
+
+
+/* 数据库连接函数 */
+int db_connect(int db_ind,char *as_dbbh,char *as_error)
+{
+	char 	*inifile = INIFILE;
+	char	ls_str1[256],ls_str2[256];
+	char 	sql_servername[128];
+	char 	sql_logid[128];
+	char 	sql_password[256];
+
+	struct sqlca sqlca ;
+
+	as_error[0] = 0;
+
+	gi_db_state[db_ind] = 0;
+
+	if(getiniinfo(inifile,as_dbbh,"servername",sql_servername)<0)
+		return -1;
+	if(getiniinfo(inifile,as_dbbh,"logid",sql_logid)<0)
+		return -1;
+	if(getiniinfo(inifile,as_dbbh,"password",ls_str1)<0)
+		return -1;
+
+	if (f_pwd_decode(ls_str1,ls_str2)<=0)
+	{
+		sprintf(as_error,"连接数据库 %s 时，密码解密失败，请重新设置密码",gs_db[db_ind]);
+		return -1;
+	}
+	strcpy(sql_password,ls_str2);
+
+	exec sql connect :sql_logid identified by :sql_password at :gs_db[db_ind] using :sql_servername;
+
+	if (sqlca.sqlcode != 0)
+	{
+		sprintf(as_error,"%s 用户 %s 连接数据库 %s 出错：%s",gs_db[db_ind],sql_logid,sql_servername,sqlca.sqlerrm.sqlerrmc);
+		return -1;
+	}
+
+	gi_db_state[db_ind] = 1;
+
+	return 1;
+
+}
+
+/* 数据库连接断开函数 */
+void db_disconnect(int db_ind)
+{
+	exec sql at :gs_db[db_ind] rollback work release ;
+
+	gi_db_state[db_ind] = 0;
+
+}
+
+
+
+/* 执行SQL语句(update/insert/delete) 
+	
+	db_ind		数据库编号
+	as_sql		待执行的SQL语句
+	ai_commit	提交标志，1 提交  0 不提交
+	
+	返回		1 成功		-1 失败，错误信息在as_error中
+*/
+int executesql(int db_ind,char *as_sql,int ai_commit,char *as_error)
+{
+	struct	sqlca sqlca;
+
+	as_error[0] = 0;
+
+	exec sql at :gs_db[db_ind] execute immediate :as_sql;
+
+	if (sqlca.sqlcode != 0)
+	{
+		sprintf(as_error,"SQL执行错误sqlcode=%d ：%s",sqlca.sqlcode,sqlca.sqlerrm.sqlerrmc);
+		if (ai_commit == 1)
+			exec sql at :gs_db[db_ind] rollback work;
+		return -1;
+	}
+
+	if (ai_commit == 1)
+		exec sql at :gs_db[db_ind] commit work;
+
+	return 1;
+}
+
+
+
+/* 执行 select 语句，返回数据
+	
+	db_ind			数据库编号
+	as_sql			待执行的Select语句
+	as_separator	字段分隔符
+	as_lineend		行(记录)分隔符
+	as_result		返回的结果数据
+	as_error		返回错误信息
+	
+	返回值：>=0	返回数据的记录数，需释放*result
+			-1	发生错误，错误信息在as_error中，不需要释放*result
+*/
+int getfmtstr(int db_ind,char *as_sql,char *as_separator,char *as_lineend,char **as_result,char *as_error)
+{
+	int i ;
+	int affectrows=-1;
+
+	struct sqlca sqlca;
+	struct SQLDA *select_dp;
+	
+	as_error[0] = 0;
+		
+	if((select_dp=sqlald(MAX_ITEMS,MAX_VNAME_LEN,MAX_INAME_LEN))==(struct SQLDA *)NULL)
+	{
+		strcpy(as_error,"cannot allocate memory for select descriptor");
+		return -1;
+	}
+
+	select_dp->N = MAX_ITEMS;
+
+	for(i=0;i<MAX_ITEMS;i++)
+	{
+		select_dp->I[i] = (short *)malloc(sizeof(short));
+		select_dp->V[i] = (char *)malloc(sizeof(char));
+	}
+
+
+	exec sql whenever sqlerror goto sqlerrorreturn;
+
+	exec sql at :gs_db[db_ind] prepare s from :as_sql ;
+
+	exec sql at :gs_db[db_ind] declare c cursor for s;
+	exec sql at :gs_db[db_ind] open c;
+
+	affectrows = process_select_list(db_ind,as_sql,as_separator,as_lineend,as_result,as_error,select_dp) ;
+
+
+sqlerrorreturn:
+
+	exec sql whenever sqlerror continue;
+
+
+
+	for(i=0;i<MAX_ITEMS;i++)
+	{
+		if(select_dp->V[i]!=(char *)NULL)
+			free(select_dp->V[i]);
+		free(select_dp->I[i]);
+	}
+
+	sqlclu(select_dp);
+
+	exec sql at :gs_db[db_ind] close c;
+
+	sprintf(as_error,"SQL执行错误: %s",sqlca.sqlerrm.sqlerrmc);
+
+	return affectrows;
+
+}
+
+
+int process_select_list(int db_ind,char *as_sql,char *as_separator,char *as_lineend,char **as_result,char *as_error,struct SQLDA *select_dp)
+{
+	int		i,null_ok,precision,scale;
+	int		len_separator,len_lineend;
+	long	linesize=0,resultsize1,resultsize2;
+	char 	*linebuf,*resultbuf=NULL;
+	char	*p;
+	char	ls_column[1024*6],ls_tmp[256];
+	struct sqlca sqlca;
+
+
+	if((strncmp(as_sql,"SELECT",6)!=0)&&(strncmp(as_sql,"select",6)!=0))
+	{
+		select_dp->F=0;
+		strcpy(as_error,"不是标准的SELECT语句");
+		return -1;
+	}
+
+	select_dp->N=MAX_ITEMS;
+
+	exec sql at :gs_db[db_ind] describe select list for s into select_dp;
+
+	if(sqlca.sqlcode < 0)
+	{
+		sprintf(as_error,"%s",sqlca.sqlerrm.sqlerrmc);
+		return -1;
+	}
+
+	if(select_dp->F<0)
+	{
+		sprintf(as_error,"Too many select_list items(%d),maxinum is %d",-(select_dp->F),MAX_ITEMS);
+		return -1;
+	}
+
+	select_dp->N=select_dp->F;
+
+	len_separator = strlen(as_separator);
+	len_lineend	  = strlen(as_lineend);
+	
+	ls_column[0] = 0;
+
+	for(i=0;i<select_dp->F;i++)
+	{
+		memcpy(ls_tmp,select_dp->S[i],select_dp->C[i]);
+		ls_tmp[select_dp->C[i]] = 0;
+		strcat(ls_column,ls_tmp);		/* 得到select字段列表 */
+		strcat(ls_column,as_separator);
+
+		sqlnul(&(select_dp->T[i]),&(select_dp->T[i]),&null_ok);
+
+		switch(select_dp->T[i])
+		{
+			case 1:/*varchar2*/
+				select_dp->L[i] += 8;	/* 适当放大缓冲区,避免某些特殊情况下出错,如to_char(sysdate,'yyyy-mm-dd hh24:mi:ss') */
+				break;
+			case 2:/*number*/
+				sqlprc(&(select_dp->L[i]),&precision,&scale);
+				if(precision==0)
+					precision = 40;
+				select_dp->L[i]=precision+2;	/* 加上小数点和符号位 */
+				break;
+			case 5:/* date */
+				select_dp->L[i]=24;
+				break;
+			case 8:/*long*/
+				select_dp->L[i]=240;
+				break;
+			case 11:/*rowid*/
+				select_dp->L[i]=18;
+				break;
+			case 12:/*date*/
+				select_dp->L[i]=20;
+				break;
+			case 24:/*long raw*/
+				select_dp->L[i]=240;
+				break;
+			case 96:/* char */
+				select_dp->L[i] += 8;	/* 适当放大缓冲区,避免某些特殊情况下出错,如常数字段等 */
+				break;
+		}
+
+		linesize += select_dp->L[i] + len_separator;
+
+		select_dp->V[i]=(char *)realloc(select_dp->V[i],select_dp->L[i]+1);
+
+		if (select_dp->T[i]!=24)	/* 强制把数据类型都转换为string 5 */
+			select_dp->T[i]=5;
+	}
+
+	ls_column[strlen(ls_column)-len_separator] = 0 ;
+
+	linesize += len_lineend + 1;
+
+	exec sql whenever not found goto :end_select_loop;
+
+	linebuf = (char *)malloc(linesize * sizeof(char));
+	if(linebuf == NULL)
+	{
+		strcpy(as_error,"系统内存不足");
+		return -1;
+	}
+	resultsize1 = 65536;
+	resultbuf = (char *)malloc(resultsize1*sizeof(char)) ;
+	if(resultbuf == NULL)
+	{
+		free(linebuf);
+		strcpy(as_error,"系统内存不足");
+		return -1;
+	}
+
+	resultbuf[0]=0;
+	linebuf[0]	=0;
+	resultsize2 =0;
+
+	for(;;)
+	{
+		exec sql at :gs_db[db_ind] fetch c using descriptor select_dp;
+		for (i=0;i<select_dp->F ;i++ )
+		{
+			strcat(linebuf,as_separator);
+			if(*select_dp->I[i]!=-1)	/* 非空值 */
+			{
+				/* 检测并去除数据中的字段分隔符、行分隔符 */
+				while ((p=strstr(select_dp->V[i],as_separator))!=NULL)
+					strcpy(p,p+len_separator);
+
+				while ((p=strstr(select_dp->V[i],as_lineend))!=NULL)
+					strcpy(p,p+len_lineend);
+
+				strcat(linebuf,select_dp->V[i]);
+			}
+		}
+
+		strcat(linebuf,as_lineend);
+
+		resultsize2 += (i=strlen(linebuf)) - len_separator ;
+
+		if (resultsize2>=resultsize1)
+		{
+			resultsize1 += i * 32;
+			resultbuf = (char *)realloc((char *)resultbuf , resultsize1) ;
+			if(resultbuf == NULL)
+			{
+				free(linebuf);
+				free(resultbuf);
+				strcpy(as_error,"系统内存不足");
+				return -1;
+			}
+		}
+
+		strcat(resultbuf,linebuf+len_separator);
+		linebuf[0]=0;
+	}
+
+	free(linebuf);
+	free(resultbuf);
+
+	return 0;
+
+end_select_loop:
+
+	free(linebuf);
+
+	*as_result = resultbuf ;
+	
+	if (sqlca.sqlerrd[2]>0)			/* 有数据，返回记录数 */
+		return sqlca.sqlerrd[2];
+	else
+	{
+		resultbuf[0] = 0;
+		return 0 ;
+	}
+
+}
+
+
+

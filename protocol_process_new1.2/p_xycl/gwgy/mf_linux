@@ -1,0 +1,17 @@
+CC = gcc
+
+gwgy = encode_AFN04.c encode_AFN05.c decode_AFN00.c decode_AFN09.c decode_AFN0A.c decode_AFN0C.c decode_AFN0D.c decode_AFN0E.c decode_main.c
+
+
+
+gwgy : gwgy.o
+
+	echo "make finish"
+
+
+gwgy.o : $(gwgy)
+	$(CC) -c  "-g" -o3  $(gwgy) -o gwgy.o
+
+
+
+
