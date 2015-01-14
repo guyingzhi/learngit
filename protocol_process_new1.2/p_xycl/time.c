@@ -4,8 +4,9 @@ int main (int argc,char *agrv[])
 {
 	char buf[120]= {0};
 	int  buff;
-//	int  *p;
-//	p =a;
+	int  *p;
+	p =a;
+	printf("hello world!!");
 	sscanf("123456 ", "%*4d%d", buf); 
 	
 	printf("%d\n",buf);
